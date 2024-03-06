@@ -1,0 +1,28 @@
+Rule "Bid Validation"
+When
+    $bid: Bid(
+        status == BidStatus.ACTIVE,
+        auction.isOpen(),
+        amount > 0,
+        amount >= auction.minimumBidIncrement(previousBid)
+    )
+Then
+    ExecuteAction("Record Bid", $bid);
+    auction.updateCurrentBid($bid);
+    if ($bid.amount >= auction.reservePrice) {
+        ExecuteAction("Close Auction", auction);
+        ExecuteAction("Notify Winner", $bid.bidder);
+    }
+End
+
+Rule "Automatic Bidding"
+When
+    $auction: Auction(
+        status == AuctionStatus.ACTIVE,
+        isOpen(),
+        automaticBiddingEnabled == true,
+        endTime - currentTime < 10 minutes
+    )
+Then
+    ExecuteAction("Place Automatic Bid", $auction);
+End
