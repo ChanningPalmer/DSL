@@ -1,0 +1,33 @@
+Rule "Order Processing"
+When
+    $order: Order(
+        status == OrderStatus.NEW,
+        totalAmount > 1000,
+        customer.age >= 18,
+        items.size() > 0,
+        items containsAny ["Electronics", "Appliances"]
+    )
+Then
+    ExecuteAction("Verify Payment", $order);
+    if ($order.paymentStatus == PaymentStatus.SUCCESS) {
+        ExecuteAction("Update Inventory", $order.items);
+        ExecuteAction("Generate Shipping Label", $order);
+        ExecuteAction("Send Shipping Confirmation", $order.customer);
+        ModifyOrderStatus($order, OrderStatus.PROCESSED);
+    } else {
+        ExecuteAction("Send Payment Reminder", $order.customer);
+    }
+End
+
+Rule "Order Cancellation"
+When
+    $order: Order(
+        status == OrderStatus.NEW || status == OrderStatus.PROCESSED,
+        paymentStatus == PaymentStatus.PENDING,
+        creationDate < currentDate.minusDays(7)
+    )
+Then
+    ExecuteAction("Cancel Order", $order);
+    ExecuteAction("Refund Payment", $order);
+    ModifyOrderStatus($order, OrderStatus.CANCELLED);
+End
