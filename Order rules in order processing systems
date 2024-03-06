@@ -1,0 +1,22 @@
+Rule "Order Validation"
+When
+    $order: Order(
+        status == OrderStatus.NEW,
+        totalAmount > 0,
+        customer.balance >= totalAmount
+    )
+Then
+    ExecuteAction("Process Payment", $order);
+    ExecuteAction("Update Inventory", $order);
+    ExecuteAction("Update Customer Balance", $order.customer, -$order.totalAmount);
+    ExecuteAction("Update Order Status", $order, OrderStatus.PROCESSED);
+End
+
+Rule "Inventory Replenishment"
+When
+    $product: Product(
+        inventory <= threshold
+    )
+Then
+    ExecuteAction("Replenish Inventory", $product);
+End
